@@ -1,0 +1,23 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1>Welcome to FantasyPitch XI</h1><br/><br/>
+    
+
+    <form asp-action="AdvanceGameweek" method="post">
+        <h3>Current Gameweek: @Model.CurrentGameweek</h3>
+        <button type="submit" class="btn btn-primary">Advance Gameweek</button>
+        <br/>
+        
+    </form>
+    <br/>
+    <a asp-controller="CreateTeam" asp-action="CreateTeam">
+        <button>Create Team</button>
+    </a>
+    <br/><br/>
+    <a asp-controller="Home" asp-action="ViewTeams">
+        <button>View Teams</button>
+    </a>
+</div>

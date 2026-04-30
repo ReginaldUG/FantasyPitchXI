@@ -1,0 +1,63 @@
+﻿@{
+    ViewData["Title"] = "Team Details Page";
+}
+@model FantasyPitchXI.ViewModels.TeamDetailsViewModel
+
+<div>
+    <h1>@Model.Team.TeamName</h1>
+    <br/>
+    <h4>Remaining Budget: @Model.Team.Budget m</h4>
+    <h4>Transfers Available: @Model.Team.TransferAvailableThisGameweek</h4>
+    <br/>
+    <br/>
+
+    @if(!Model.Players.Any())
+    {
+        <h4>No players in squad.</h4>
+
+        <a asp-controller="CreateTeam" asp-action="SelectPlayers" asp-route-teamId="@Model.Team.Id">
+            <button type="button">Continue to select players</button>
+        </a>        
+    }
+    else
+    {
+        <h2>Squad:</h2>
+        <table border="1" cellpadding="10">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Position</th>
+                    <th>Club</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach(var player in Model.Players)
+                {
+                    <tr>
+                        <td>@player.Name</td>
+                        <td>@player.Position</td>
+                        <td>@player.Club.Name</td>
+                        <td>@player.Price m</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <br/><br/>
+    @if(Model.Players.Any() && Model.Team.TransferAvailableThisGameweek > 0)
+    {
+        <a asp-controller="Transfer" asp-action="Index" asp-route-teamId="@Model.Team.Id">
+            <button>Transfers</button>
+        </a>
+    }
+
+    <a asp-controller="Home" asp-action="ViewTeams">
+        <button>Back to Teams View</button>
+    </a>
+
+    
+
+</div>
+

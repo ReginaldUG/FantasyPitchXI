@@ -1,0 +1,19 @@
+﻿@{
+    ViewData["Title"] = "View Teams Page";
+}
+
+<div>
+    <h1>Create Team</h1>
+    <br/>
+    <form asp-action="CreateTeam" method="post">
+        <label>Team Name</label>
+        <br/>
+        <input type="text" name="teamName" required/>
+        <br /><br />
+        <button type="submit">Continue to select players</button>
+    </form>
+</<br /><br /><br /><br />
+    <a asp-controller="Home" asp-action="Index">
+        <button>Go Back Home</button>
+    </a>
+</div>

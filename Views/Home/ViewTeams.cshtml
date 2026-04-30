@@ -1,0 +1,45 @@
+﻿@{
+    ViewData["Title"] = "View Teams Page";
+}
+@model FantasyPitchXI.ViewModels.ViewTeamsViewModel
+
+<div>
+    <h1> All Teams</h1>
+    <br/>
+    @if (!Model.Teams.Any())
+    {
+        <h4>No teams created.</h4>
+    }
+    else
+    {
+        <table border="1" cellpadding="10">
+            <thead>
+                <tr>
+                    <th>Team Name</th>
+                    <th>Remaining Budget</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var team in Model.Teams)
+                {
+                    <tr>
+                        <td>@team.TeamName</td>
+                        <td>@team.Budget m</td>
+                        <td>
+                            <a asp-action="TeamDetails" asp-route-teamId="@team.Id">
+                                <button>View Team</button>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    <br /><br />
+
+    <a asp-controller="Home" asp-action="Index">
+        <button>Go Back</button>
+    </a>
+</div>

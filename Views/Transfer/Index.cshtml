@@ -1,0 +1,473 @@
+﻿@model FantasyPitchXI.ViewModels.TransferPlayersViewModel
+
+@{
+    ViewData["Title"] = "Transfer Players Page";
+}
+
+<div>
+    <h1>@Model.TeamName</h1>
+    <br />
+    <h3 id="budgetDisplay">
+        Remaining Budget: @Model.Budget m
+    </h3>
+    <h3 id="transferDisplay">Transfers Available: @Model.TransfersAvailable</h3>
+
+    <h3 id="squadCount">Squad Count: @Model.CurrentSquad.Count / 15</h3>
+    <br />
+
+    @if (TempData["Error"] != null)
+    {
+        <p style="color:red;">@TempData["Error"]</p>
+    }
+
+    <form asp-action="TransferAction" method="post" id="transferForm">
+        <input type="hidden" name="TeamId" value="@Model.TeamId" />
+        <div id="hiddenInput"></div>
+        <div style="display:flex; gap:50px; align-items:center;">
+            <div>
+                <h2>Available Players</h2>
+                <div class="filters">
+                    <label>
+                        <input type="radio" name="availableFilter" value="All" checked onchange="transferView.filterAvailablePlayers(this.value)">
+                        All
+                    </label>
+                    <label>
+                        <input type="radio" name="availableFilter" value="Goalkeeper" onchange="transferView.filterAvailablePlayers(this.value)">
+                        GK
+                    </label>
+                    <label>
+                        <input type="radio" name="availableFilter" value="Defender" onchange="transferView.filterAvailablePlayers(this.value)">
+                        DEF
+                    </label>
+                    <label>
+                        <input type="radio" name="availableFilter" value="Midfielder" onchange="transferView.filterAvailablePlayers(this.value)">
+                        MID
+                    </label>
+                    <label>
+                        <input type="radio" name="availableFilter" value="Striker" onchange="transferView.filterAvailablePlayers(this.value)">
+                        STR
+                    </label>
+                </div>
+
+                <div class="player-table-container">
+                    <table border="1" cellpadding="8" id="availableTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Position</th>
+                                <th>Club</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var player in Model.AllPlayers)
+                            {
+                                <tr onclick="transferView.selectAvailablePlayer(this)"
+                                    data-id="@player.Id"
+                                    data-name="@player.Name"
+                                    data-position="@player.Position"
+                                    data-club="@player.Club.Name"
+                                    data-clubid="@player.ClubId"
+                                    data-price="@player.Price">
+
+                                    <td>@player.Name</td>
+                                    <td>@player.Position</td>
+                                    <td>@player.Club.Name</td>
+                                    <td>@player.Price</td>
+
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!--Buttons-->
+            <div style="display:flex; flex-direction:column; gap:20px;">
+                <button type="button" onclick="transferView.movePlayerRight()">
+                    Add
+                </button>
+                <button type="button" onclick="transferView.movePlayerLeft()">
+                    Remove
+                </button>
+                <br />
+                <button type="button" onclick="transferView.resetTransfers()">
+                    Reset
+                </button>
+            </div>
+
+            <div>
+                <h2>Current Squad</h2>
+                <div class="player-table-container">
+                    <table border="1" cellpadding="8" id="selectedTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Position</th>
+                                <th>Club</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="selectedBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+        <br />
+        <br />
+
+        <button type="button" onclick="transferView.openTransferModal()">Save Squad</button>
+    </form>
+</div>
+
+
+<!--Confirm Transfer MODAL-->
+<div id="transferModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);">
+    <div style="background:white; width:500px; margin:100px auto; padding:20px;">
+        <h2>Confirm Transfers</h2>
+        <table border="1" cellpadding="8" width="100%">
+            <thead>
+                <tr>
+                    <th>OUT</th>
+                    <th>IN</th>
+                </tr>
+            </thead>
+            <tbody id="transferSummaryBody">
+            </tbody>
+        </table>
+        <br />
+
+        <button type="button" onclick="transferView.submitTransfers()">Confirm</button>
+        <button type="button" onclick="transferView.closeTransferModal()">Cancel</button>
+    </div>
+
+</div>
+
+<style>
+    .player-table-container {
+        height: 500px;
+        overflow-y: auto;
+        border: 1px solid black;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    tr {
+        cursor: pointer;
+    }
+
+        tr:hover {
+            background-color: #f2f2f2f2;
+        }
+
+    th {
+        position: sticky;
+        top: 0;
+        background-color: white;
+    }
+
+    .filters {
+        margin-bottom: 10px;
+    }
+</style>
+
+<script>
+    (function (){
+        let availablePlayersSelectedRow = null;
+        let chosenPlayersSelectedRow = null;
+
+        let remainingBudget = @Model.Budget;
+        let transfersAvailable = @Model.TransfersAvailable;
+
+        let removedPlayers = [];
+        let originalSquad = [];
+        let selectedPlayers = [];
+
+        @foreach (var player in Model.CurrentSquad)
+        {
+                    <text>
+                                let player@(player.Id) = {
+                                    id: @player.Id,
+                                    name: "@player.Name",
+                                    position: "@player.Position",
+                                    club: "@player.Club.Name",
+                                    clubId: @player.ClubId,
+                                    price:@player.Price
+                                };
+
+                                originalSquad.push(player@(player.Id));
+                                selectedPlayers.push(player@(player.Id));
+                    </text>
+        }
+        renderSelectedPlayers();
+        updateHiddenInputs();
+        updateDisplays();
+
+        function selectAvailablePlayer(row){
+            clearSelections();
+            availablePlayersSelectedRow = row;
+            row.style.backgroundColor = "lightblue";
+        }
+
+        function selectChosenPlayer(row){
+            clearSelections();
+            chosenPlayersSelectedRow = row;
+            row.style.backgroundColor = "lightgreen";
+        }
+
+        function clearSelections(){
+            document.querySelectorAll("#availableTable tr, #selectedTable tr").forEach(r=>{r.style.backgroundColor="";});
+        }
+
+        function movePlayerLeft(){
+            if(!chosenPlayersSelectedRow){
+                alert("Select a player to remove");
+                return;
+            }
+
+            const transfersCurrentlyUsed = originalSquad.filter(p=>!selectedPlayers.some(sp=>sp.id===p.id)).length;
+
+            if(transfersCurrentlyUsed >= transfersAvailable){
+                alert("No transfers remaining");
+                return;
+            }
+
+            const playerId = parseInt(chosenPlayersSelectedRow.dataset.id);
+            const playerToRemove = selectedPlayers.find(p=>p.id === playerId);
+
+            if(!playerToRemove){
+                return;
+            }
+
+            if(removedPlayers.length > 0){
+                alert("Complete the replacement first");
+                return;
+            }
+
+            removedPlayers.push(playerToRemove);
+            selectedPlayers = selectedPlayers.filter(p=>p.id !== playerId);
+
+            remainingBudget += playerToRemove.price;
+            chosenPlayersSelectedRow.remove();
+
+            addBackToAvailablePlayers(playerToRemove);
+            updateDisplays();
+            updateHiddenInputs();
+            clearSelections();
+            chosenPlayersSelectedRow = null;
+        }
+
+        function movePlayerRight(){
+            if(!availablePlayersSelectedRow){
+                alert("Please select a player to add.");
+                return;
+            }
+            if(removedPlayers.length === 0){
+                alert("Remove a player first");
+                return;
+            }
+            const movingPlayer = extractPlayer(availablePlayersSelectedRow);
+
+            const requiredPosition = removedPlayers[removedPlayers.length - 1].position;
+            if(movingPlayer.position !== requiredPosition){
+                alert("Replacemnet must be in the same position");
+                return;
+            }
+
+            if(remainingBudget - movingPlayer.price < 0){
+                alert("Not enought budget");
+                return;
+            }
+
+            let clubCounter = selectedPlayers.filter(p=>p.clubId===movingPlayer.clubId).length;
+            if(clubCounter >= 3){
+                alert("Maximum of 3 players allowed per club");
+                return;
+            }
+
+            selectedPlayers.push(movingPlayer);
+            remainingBudget -= movingPlayer.price;
+
+            removedPlayers = [];
+
+            availablePlayersSelectedRow.remove();
+            renderSelectedPlayers();
+            
+            updateDisplays();
+            updateHiddenInputs();
+
+            clearSelections();
+            availablePlayersSelectedRow = null;
+
+        }
+
+        function renderSelectedPlayers(){
+            const body = document.getElementById("selectedBody");
+            body.innerHTML = "";
+            selectedPlayers.forEach(player=>{
+                body.innerHTML += `
+                    <tr onclick="transferView.selectChosenPlayer(this)"
+                        data-id="${player.id}">
+                    
+                        <td>${player.name}</td>
+                        <td>${player.position}</td>
+                        <td>${player.club}</td>
+                        <td>${player.price}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function addBackToAvailablePlayers(player){
+            const table = document.querySelector("#availableTable tbody");
+            table.innerHTML += `
+                <tr onclick="transferView.selectAvailablePlayer(this)"
+                    data-id="${player.id}"
+                    data-name="${player.name}"
+                    data-position="${player.position}"
+                    data-club="${player.club}"
+                    data-clubid="${player.clubId}"
+                    data-price="${player.price}">
+
+                    <td>${player.name}</td>
+                    <td>${player.position}</td>
+                    <td>${player.club}</td>
+                    <td>${player.price}</td>
+                </tr>
+            `;
+        }
+
+        function updateDisplays(){
+
+            const originalIds = originalSquad.map(p=>p.id);
+            const currentIds = selectedPlayers.map(p=>p.id);
+
+            const transfersCurrentlyUsed = originalIds.filter(id=>!currentIds.includes(id)).length;
+
+            document.getElementById("budgetDisplay").innerText = "Remaining Budget: "+ remainingBudget+ "m";
+            document.getElementById("squadCount").innerText="Squad Count: "+selectedPlayers.length+ " /15";
+            document.getElementById("transferDisplay").innerText = "Transfers Available: " + (transfersAvailable - transfersCurrentlyUsed);
+        }
+
+        function updateHiddenInputs(){
+            const container = document.getElementById("hiddenInput");
+            container.innerHTML = "";
+
+            selectedPlayers.forEach(player=>{
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = "UpdatedSquadPlayerIDs";
+                input.value = player.id;
+                container.appendChild(input);
+            });
+        }
+
+        function extractPlayer(row){
+
+            return{
+                id: parseInt(row.dataset.id),
+                name: row.dataset.name,
+                position: row.dataset.position,
+                club: row.dataset.club,
+                clubId: parseInt(row.dataset.clubid),
+                price: parseFloat(row.dataset.price)
+            };
+
+        }
+
+        function resetTransfers(){
+            location.reload();
+        }
+
+        function filterAvailablePlayers(position){
+
+            const rows = document.querySelectorAll("#availableTable tbody tr");
+
+            rows.forEach(row => {
+
+                if(position === "All"){
+                    row.style.display = "";
+                    return;
+                }
+
+                if(row.dataset.position === position){
+                    row.style.display = "";
+                }
+                else{
+                    row.style.display = "none";
+                }
+
+            });
+
+        }
+
+        function openTransferModal(){
+
+            if(removedPlayers.length > 0){
+                alert("Complete all replacements first.");
+                return;
+            }
+
+            let originalIds = originalSquad.map(p => p.id).sort((a,b)=>a-b);
+
+            let currentIds = selectedPlayers.map(p => p.id).sort((a,b)=>a-b);
+
+            if(JSON.stringify(originalIds) === JSON.stringify(currentIds)){
+                alert("No transfers were made.");
+                return;
+            }
+
+            let playersOut = originalSquad.filter(p => !currentIds.includes(p.id));
+
+            let playersIn = selectedPlayers.filter(p => !originalIds.includes(p.id));
+
+            const body = document.getElementById("transferSummaryBody");
+
+            body.innerHTML = "";
+
+            for(let i = 0; i < playersOut.length; i++){
+
+                body.innerHTML += `
+                    <tr>
+                        <td>${playersOut[i].name}</td>
+                        <td>${playersIn[i].name}</td>
+                    </tr>
+                `;
+            }
+
+            document.getElementById("transferModal").style.display = "block";
+        }
+
+        function closeTransferModal(){
+
+            document.getElementById("transferModal").style.display = "none";
+        }
+
+        function submitTransfers(){
+
+            closeTransferModal();
+            document.getElementById("transferForm").submit();
+        }
+
+
+        window.transferView = {
+            selectAvailablePlayer,
+            selectChosenPlayer,
+            movePlayerLeft,
+            movePlayerRight,
+            resetTransfers,
+            filterAvailablePlayers,
+            openTransferModal,
+            closeTransferModal,
+            submitTransfers
+        };
+    })();
+
+</script>

@@ -1,0 +1,67 @@
+Id,Name,Position,Price,ClubId
+1,Erling Haaland,Striker,14.0,1
+2,Antoine Semenyo,Midfielder,8.0,1
+3,Ryan Cherki,Midfielder,6.0,1
+4,Kalvin Phillips,Midfielder,4.5,1
+5,Kovacic,Midfielder,5.0,1
+6,Jeremy Doku,Midfielder,6.4,1
+7,O'Rielly,Defender,5.0,1
+8,Marc Guehi,Defender,5.0,1
+9,Rico Lewis,Defender,5.0,1
+10,Nathan Ake,Defender,5.2,1
+11,Donnaruma,Goalkeeper,5.6,1
+12,David Raya,Goalkeeper,6.0,2
+13,Gabriel,Defender,7.0,2
+14,Saliba,Defender,6.0,2
+15,Jurrien Timber,Defender,6.0,2
+16,Calafiori,Defender,5.0,2
+17,Saka,Midfielder,10.0,2
+18,Rice,Midfielder,7.0,2
+19,Eze,Midfielder,7.2,2
+20,Noni Madueke,Midfielder,7.0,2
+21,Viktor Gyokeres,Striker,8.0,2
+22,Kai Havertz,Striker,7.0,2
+23,Lammens,Goalkeeper,5.0,3
+24,De ligt,Defender,5.0,3
+25,Martinez,Defender,5.0,3
+26,Dalot,Defender,5.0,3
+27,Luke Shaw,Defender,4.5,3
+28,Bruno Fernandes,Midfielder,10.0,3
+29,Mbuemo,Midfielder,8.4,3
+30,Cunha,Midfielder,8.1,3
+31,Amad,Midfielder,6.2,3
+32,Sesko,Striker,7.3,3
+33,Zirkzee,Striker,5.8,3
+34,Isak,Striker,10.3,4
+35,Ekitike,Striker,9.0,4
+36,Salah,Midfielder,14.0,4
+37,Wirtz,Midfielder,8.3,4
+38,Chiesa,Midfielder,6.3,4
+39,Szoboszlai,Midfielder,7.1,4
+40,Frimpong,Defender,5.7,4
+41,Robertson,Defender,5.7,4
+42,Kerkez,Defender,5.6,4
+43,Konate,Defender,5.6,4
+44,Allison Becker,Goalkeeper,5.4,4
+45,Sanchez,Goalkeeper,4.8,5
+46,Cucurella,Defender,6.1,5
+47,Gusto,Defender,4.9,5
+48,Hato,Defender,4.6,5
+49,Fofana,Defender,4.4,5
+50,Cole Palmer,Midfielder,10.5,5
+51,Neto,Midfielder,7.0,5
+52,Estevao,Midfielder,6.4,5
+53,Garnacho,Midfielder,6.4,5
+54,Enzo,Midfielder,6.5,5
+55,Joao Pedro,Striker,7.6,5
+56,Evanilson,Striker,6.7,6
+57,Kluivert,Midfielder,6.9,6
+58,Tavernier,Midfielder,5.4,6
+59,Rayan,Midfielder,5.4,6
+60,Alex Scott,Midfielder,5.0,6
+61,Hill,Defender,4.1,6
+62,Truffert,Defender,4.7,6
+63,Senesi,Defender,5.2,6
+64,Zabarnyi,Defender,5,6
+65,Kroupi,Striker,4.6,6
+66,Petrovic,Goalkeeper,4.6,6

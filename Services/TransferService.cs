@@ -14,6 +14,7 @@ namespace FantasyPitchXI.Services
         public (bool proceed, string message) TransferPlayers (FantasyTeam team, List<int> updatedSquadPlayerIDs)
         {
             var teamValidationService = new TeamValidationService(_db);
+            //testing
 
             List<int> currentPlayersIDs = team.FantasyTeamPlayers.Select(p => p.PlayerId).ToList();
 

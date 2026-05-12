@@ -22,23 +22,17 @@ namespace FantasyPitchXI.Controllers
         [HttpGet]
         public IActionResult Index(int teamId)
         {
+            //adjusted
+            var props = _transferservice.GetTransferControllerVMProperties(teamId);
 
-            var team = _teamValidationService.GetTeamById(teamId);
-
-            var players = _teamValidationService.GetAllPlayers();
-
-            var currentPlayerIds = team.FantasyTeamPlayers.Select(tp => tp.PlayerId).ToList();
-            var availablePlayers = _teamValidationService.GetAllPlayers().Where(p => !currentPlayerIds.Contains(p.Id)).ToList();
-
-            var currentSquad = team.FantasyTeamPlayers.Select(tp => tp.Player).ToList();
             var vm = new TransferPlayersViewModel
             {
-                TeamId = team.Id,
-                TeamName = team.TeamName,
-                Budget = team.Budget,
-                TransfersAvailable = team.TransferAvailableThisGameweek,
-                AllPlayers = availablePlayers,
-                CurrentSquad = currentSquad
+                TeamId = props.team.Id,
+                TeamName = props.team.TeamName,
+                Budget = props.team.Budget,
+                TransfersAvailable = props.team.TransferAvailableThisGameweek,
+                AllPlayers = props.availablePlayers,
+                CurrentSquad = props.currentSquad
             };
 
             return View(vm);

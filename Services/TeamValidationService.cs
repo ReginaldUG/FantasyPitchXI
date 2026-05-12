@@ -7,7 +7,7 @@ namespace FantasyPitchXI.Services
     public class TeamValidationService
     {
         private readonly AppDbContext _db;
-        public TeamValidationService (AppDbContext db)
+        public TeamValidationService(AppDbContext db)
         {
             _db = db;
         }
@@ -16,14 +16,16 @@ namespace FantasyPitchXI.Services
         public (bool success, string message, FantasyTeam? team) CreateTeam(string teamName)
         {
             teamName = teamName.Trim();
-            var teamExists = _db.FantasyTeam.FirstOrDefault(t => t.TeamName.ToLower() == teamName.Trim().ToLower());
-            if (teamExists!=null)
+            var teamExists = _db.FantasyTeam.FirstOrDefault(t => t.TeamName.ToLower() == teamName.ToLower());
+
+            if (teamExists != null)
             {
                 return (false, "Team with same name already exists", null);
             }
+
             var team = new FantasyTeam
             {
-                TeamName = teamName.Trim(),
+                TeamName = teamName,
                 Budget = GameRuleConstants.InitialBudget,
                 TransferAvailableThisGameweek = GameRuleConstants.MaxTransfersPerGW
             };
@@ -36,7 +38,7 @@ namespace FantasyPitchXI.Services
         public (bool success, string message) AddPlayersToTeam(FantasyTeam team, List<Player> chosenPlayers)
         {
             var teamValidator = TeamValidator(chosenPlayers);
-            
+
             if (!teamValidator.proceed)
             {
                 return (false, teamValidator.message);
@@ -55,7 +57,7 @@ namespace FantasyPitchXI.Services
             //Update Team Budget. Initial Budget is always 100m
             team.Budget = CalculateRemainingBudget(chosenPlayers);
 
-            
+
             _db.SaveChanges();
 
             return (true, "Players added successfully");
@@ -75,33 +77,21 @@ namespace FantasyPitchXI.Services
             var numberOfPlayersValidation = ValidateNumberOfPlayers(chosenPlayers);
             var teamOfPlayersValidation = ValidateTeamOfPlayers(chosenPlayers);
 
-            if (chosenPlayers.Count != GameRuleConstants.TotalSquadSize)
-            {
-                return (false, $"Total Player must be {GameRuleConstants.TotalSquadSize.ToString()}");
-            }
-            else if (!teamCostValidation.proceed)
-            {
-                return (false, teamCostValidation.message);
-            }
-            else if (!numberOfPlayersValidation.proceed)
-            {
-                return (false, numberOfPlayersValidation.message);
-            }
-            else if (!teamOfPlayersValidation.proceed)
-            {
-                return (false, teamOfPlayersValidation.message);
-            }
 
-            return (true, "Team is valid");
+            //String tenary conditional operator USED instead of nested if statement
+            string? message =
+                chosenPlayers.Count != GameRuleConstants.TotalSquadSize ? $"Total Player must be {GameRuleConstants.TotalSquadSize.ToString()}" :
+                !teamCostValidation.proceed ? teamCostValidation.message :
+                !numberOfPlayersValidation.proceed ? numberOfPlayersValidation.message :
+                !teamOfPlayersValidation.proceed ? teamOfPlayersValidation.message : null;
+
+            return message == null ? (true, "Team is valid") : (false, message);
 
         }
 
         /// Validation Logic
         private (bool proceed, string message) ValidateNumberOfPlayers(List<Player> chosenPlayers)
         {
-            bool proceed = false;
-            string message = "passed";
-
             var groupPlayers = chosenPlayers.GroupBy(p => p.Position).ToDictionary(g => g.Key, g => g.Count());
 
             int goalkeepers = groupPlayers.GetValueOrDefault(PlayerPosition.Goalkeeper, 0);
@@ -109,28 +99,15 @@ namespace FantasyPitchXI.Services
             int midfielders = groupPlayers.GetValueOrDefault(PlayerPosition.Midfielder, 0);
             int strikers = groupPlayers.GetValueOrDefault(PlayerPosition.Striker, 0);
 
-            if (goalkeepers != GameRuleConstants.TotalSquadGoalkeepers)
-            {
-                message = $"You Must Select {GameRuleConstants.TotalSquadGoalkeepers} Goalkeepers";
-            }
-            else if (defenders != GameRuleConstants.TotalSquadDefenders)
-            {
-                message = $"You Must Select {GameRuleConstants.TotalSquadDefenders} Defenders";
-            }
-            else if (midfielders != GameRuleConstants.TotalSquadMidfielders)
-            {
-                message = $"You Must Select {GameRuleConstants.TotalSquadMidfielders} Midfielders";
-            }
-            else if (strikers != GameRuleConstants.TotalSquadStrikers)
-            {
-                message = $"You Must Select {GameRuleConstants.TotalSquadStrikers} Strikers";
-            }
-            else
-            {
-                proceed = true;
-            }
+            string? message =
+                goalkeepers != GameRuleConstants.TotalSquadGoalkeepers ? $"You Must Select {GameRuleConstants.TotalSquadGoalkeepers} Goalkeepers" :
+                defenders != GameRuleConstants.TotalSquadDefenders ? $"You Must Select {GameRuleConstants.TotalSquadDefenders} Defenders" :
+                midfielders != GameRuleConstants.TotalSquadMidfielders ? $"You Must Select {GameRuleConstants.TotalSquadMidfielders} Midfielders" :
+                strikers != GameRuleConstants.TotalSquadStrikers ? $"You Must Select {GameRuleConstants.TotalSquadStrikers} Strikers" :
+                null;
 
-            return (proceed, message);
+            return message == null ? (true, "passed") : (false, message);
+
         }
 
         private (bool proceed, string message) ValidateTeamOfPlayers(List<Player> chosenPlayers)
@@ -146,8 +123,8 @@ namespace FantasyPitchXI.Services
                 {
                     message = $"You cannot select more than {GameRuleConstants.MaxPlayersFromSameClub} players from the same club.";
                     proceed = false;
-                     
-                    return (proceed, message);                    
+
+                    return (proceed, message);
                 }
             }
 
@@ -161,7 +138,8 @@ namespace FantasyPitchXI.Services
 
             decimal teamCost = chosenPlayers.Sum(p => p.Price);
 
-            if (teamCost > GameRuleConstants.InitialBudget){
+            if (teamCost > GameRuleConstants.InitialBudget)
+            {
 
                 message = $"Team cost exceeds Max Budget of {GameRuleConstants.InitialBudget.ToString()}m";
                 proceed = false;
@@ -175,17 +153,17 @@ namespace FantasyPitchXI.Services
         //General
         public List<Player> GetAllPlayers()
         {
-            var result = _db.Player.Include(p=>p.Club).ToList();
+            var result = _db.Player.Include(p => p.Club).ToList();
             return result;
         }
         public FantasyTeam GetTeamById(int teamId)
         {
-            var result = _db.FantasyTeam.Include(t => t.FantasyTeamPlayers).ThenInclude(tp=>tp.Player).ThenInclude(p=>p.Club).FirstOrDefault(t => t.Id == teamId);
+            var result = _db.FantasyTeam.Include(t => t.FantasyTeamPlayers).ThenInclude(tp => tp.Player).ThenInclude(p => p.Club).FirstOrDefault(t => t.Id == teamId);
             return result;
         }
         public List<Player> GetPlayersByIds(List<int> playerIds)
         {
-            var result = _db.Player.Include(p=>p.Club).Where(p => playerIds.Contains(p.Id)).ToList();
+            var result = _db.Player.Include(p => p.Club).Where(p => playerIds.Contains(p.Id)).ToList();
             return result;
         }
     }

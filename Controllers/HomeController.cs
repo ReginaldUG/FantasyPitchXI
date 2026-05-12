@@ -1,5 +1,6 @@
 using FantasyPitchXI.Data;
 using FantasyPitchXI.Models;
+using FantasyPitchXI.Services;
 using FantasyPitchXI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,10 +11,12 @@ namespace FantasyPitchXI.Controllers
     public class HomeController : Controller
     {
         private readonly AppDbContext _db;
+        private readonly HomePageService _homePageService;
 
         public HomeController(AppDbContext db)
         {
             _db = db;
+            _homePageService = new HomePageService(db);
         }
 
         public IActionResult Index()
@@ -27,7 +30,7 @@ namespace FantasyPitchXI.Controllers
 
         public IActionResult ViewTeams()
         {
-            var listOfTeams = _db.FantasyTeam.Include(t => t.FantasyTeamPlayers).ToList();
+            var listOfTeams = _homePageService.GetListOfTeams();
 
             var vm = new ViewTeamsViewModel
             {
@@ -38,17 +41,17 @@ namespace FantasyPitchXI.Controllers
 
         public IActionResult TeamDetails(int teamId)
         {
-            var team = _db.FantasyTeam.Include(t => t.FantasyTeamPlayers).ThenInclude(tp => tp.Player).ThenInclude(p => p.Club).FirstOrDefault(t => t.Id == teamId);
+            var props = _homePageService.GetTeamDetails(teamId);
 
-            if (team == null)
+            if (props.proceed == false)
             {
                 return View("Error");
             }
 
             var vm = new TeamDetailsViewModel
             {
-                Team = team,
-                Players = team.FantasyTeamPlayers.Select(tp => tp.Player).ToList()
+                Team = props.team,
+                Players = _homePageService.GetPlayersFromTeam(props.team)
             };
             return View(vm);
         }
@@ -56,22 +59,7 @@ namespace FantasyPitchXI.Controllers
         [HttpPost]
         public async Task<IActionResult> AdvanceGameweek()
         {
-            if (GameState.CurrentGameweek >= GameRuleConstants.TotalGameweeks)
-            {
-                TempData["Error"] = "Season Over, Gameweek 38 reached";
-                return RedirectToAction("Index");
-            }
-            GameState.CurrentGameweek++;
-            var teams = await _db.FantasyTeam.ToListAsync();
-            foreach(var team in teams)
-            {
-                if(team.TransferAvailableThisGameweek < 5)
-                {
-                    team.TransferAvailableThisGameweek++;
-                }
-                
-            }
-            await _db.SaveChangesAsync();
+            await _homePageService.AdvanceGameweek();
             return RedirectToAction("Index");
         }
 

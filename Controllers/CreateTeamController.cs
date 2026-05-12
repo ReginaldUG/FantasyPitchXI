@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FantasyPitchXI.Controllers
 {
-    public class CreateTeamController: Controller
+    public class CreateTeamController : Controller
     {
         private readonly TeamValidationService _teamservice;
         public CreateTeamController(AppDbContext db)
@@ -40,16 +40,15 @@ namespace FantasyPitchXI.Controllers
         public IActionResult SelectPlayers(int teamId)
         {
             var team = _teamservice.GetTeamById(teamId);
-            var players = _teamservice.GetAllPlayers();
 
             var vm = new SelectPlayersViewModel
             {
                 TeamId = teamId,
                 Budget = team.Budget,
                 TeamName = team.TeamName,
-                AllPlayers = players
+                AllPlayers = _teamservice.GetAllPlayers()
             };
-            
+
             return View(vm);
         }
 
@@ -69,7 +68,7 @@ namespace FantasyPitchXI.Controllers
                 TempData["Error"] = result.message;
                 return RedirectToAction("SelectPlayers", new { teamId = vm.TeamId });
             }
-            return RedirectToAction("TeamDetails", "Home", new {teamId= vm.TeamId});
+            return RedirectToAction("TeamDetails", "Home", new { teamId = vm.TeamId });
         }
     }
 }

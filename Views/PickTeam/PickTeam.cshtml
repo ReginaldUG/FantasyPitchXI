@@ -1,0 +1,473 @@
+﻿@{
+    ViewData["Title"] = "Pick Team Page";
+}
+@model FantasyPitchXI.ViewModels.PickTeamViewModel
+
+<div>
+    <h1>@Model.TeamName</h1>
+    <h1>WORK IN PROGRESS</h1>
+    <br/>
+
+    @if (TempData["Error"] != null)
+    {
+        <p style="color:red;">@TempData["Error"]</p>
+    }
+
+    <h3 id="xiCount">Starting XI: 0 / 11</h3>
+    <h3 id="benchCount">Bench: 0 / 4</h3>
+
+    <br/>
+    
+    <form asp-action="SaveTeamXI" method="post" id="pickTeamForm">
+        <input type="hidden" name="TeamId" value="@Model.TeamId"/>
+
+        <div id="hiddenInputs"></div>
+
+        <div style="display:flex; gap:50px; align-items:center;">
+            <!--LEFT SIDE-->
+            <div>
+                <h2>Current Squad</h2>
+                <div class="filters">
+                    <label>
+                        <input type="radio" name="positionFilter" value="All" checked onchange="filterAvailablePlayers(this.value)">
+                        All
+                    </label>
+                    <label>
+                        <input type="radio" name="positionFilter" value="Goalkeeper" onchange="filterAvailablePlayers(this.value)">
+                        GK
+                    </label>
+                    <label>
+                        <input type="radio" name="positionFilter" value="Defender" onchange="filterAvailablePlayers(this.value)">
+                        DEF
+                    </label>
+                    <label>
+                        <input type="radio" name="positionFilter" value="Midfielder" onchange="filterAvailablePlayers(this.value)">
+                        MID
+                    </label>
+                    <label>
+                        <input type="radio" name="positionFilter" value="Striker" onchange="filterAvailablePlayers(this.value)">
+                        STR
+                    </label>
+                </div>
+
+                <div class="player-table-container">
+                    <table border="1" cellpadding="8" id="availableTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Position</th>
+                                <th>Club</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="availableBody">
+                            @foreach (var player in Model.Squad.OrderBy(p=>p.Position))
+                                {
+                                    <tr data-id="@player.Id"
+                                        data-name="@player.Name"
+                                        data-position="@player.Position"
+                                        data-club="@player.Club.Name"
+                                        >
+
+                                        <td>@player.Name</td>
+                                        <td>@player.Position</td>
+                                        <td>@player.Club.Name</td>
+                                        <td>
+                                            <button type="button" onclick="addToXI(this)">
+                                                Add to XI
+                                            </button>
+                                            <button type="button" onclick="addToBench(this)">
+                                                Add to Bench
+                                            </button>
+                                        </td>
+
+                                    </tr>
+                                }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!--Right side-->
+            <div>
+                <!--Starting XI-->
+                <div>
+                    <h2>Starting XI</h2>
+                    <div class="player-table-container-small">
+                        <table border="1" cellpadding="8">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Position</th>
+                                    <th>C</th>
+                                    <th>VC</th>
+                                    <th>Remove</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="startingBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <!--BENCH table-->
+                <div>
+                    <h2>Bench</h2>
+                    <div class="player-table-container-small">
+                        <table border="1" cellpadding="8">
+                            <thead>
+                                <tr>
+                                    <th>Order</th>
+                                    <th>Name</th>
+                                    <th>Position</th>
+                                    <th>Move</th>
+                                    <th>Remove</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="benchBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <br/>
+        <br/>
+        
+        <button type="submit"> Save Team</button>
+    </form>
+</div>
+
+<style>
+    .player-table-container{
+        height: 500px;
+        overflow: auto;
+        border: 1px solid black;
+    }
+    .player-table-container-small{
+        height: 250px;
+        overflow: auto;
+        border: 1px solid black;
+    }
+    table{
+        width: 100%;
+        border-collapse: collapse
+    }
+    th{
+        position: sticky;
+        top:0;
+        background-color: white;
+    }
+    tr:hover{
+        background-color:#f2f2f2;
+    }
+    .filters{
+        margin-bottom: 10px;
+    }
+</style>
+
+<script>
+    let startingPlayers = [];
+    let benchPlayers = [];
+
+    document.getElementById("pickTeamForm").addEventListener("submit", function(e){
+        if(startingPlayers.length !== 11){
+            alert("Starting XI must contain exactly 11 players");
+            e.preventDefault();
+            return;
+        }
+        if(benchPlayers.length > 4){
+            alert("Bench cannot contain more than 4 players");
+            e.preventDefault();
+            return;
+        }
+        if(captainId === null){
+            alert("Select a Captain");
+            e.preventDefault();
+            return;
+        }
+        if(viceCaptainId === null){
+            alert("Select a Vice Captain");
+            e.preventDefault();
+            return;
+        }
+    });
+
+    function addToXI(button){
+        if(startingPlayers.length >= 11){
+            alert("Starting XI already full");
+            return;
+        }
+        const row = button.closest("tr");
+        const player = extractPlayer(row);
+
+        startingPlayers.push(player);
+        row.remove();
+        renderStartingXI();
+        updateCounts();
+        updateHiddenInputs();
+    }
+
+    function addToBench(button){
+        if(benchPlayers.length >= 4){
+            alert("Bench already full");
+            return;
+        }
+        const row = button.closest("tr");
+        const player = extractPlayer(row);
+
+        if(player.position === "Goalkeeper"){
+            let benchGk = benchPlayers.filter(p=>p.position === "Goalkeeper").length;
+
+            if(benchGk >= 1){
+                alert("Bench can only contain 1 Goalkeeper");
+                return;
+            }
+        }
+        benchPlayers.push(player);
+
+        row.remove();
+        renderBench();
+        updateCounts();
+        updateHiddenInputs();
+    }
+
+    function removeFromXI(playerId){
+        const player = startingPlayers.find(p=>p.id === playerId);
+        startingPlayers = startingPlayers.filter(p=>p.id !== playerId);
+
+        if(captainId === playerId){
+            captainId = null;
+        }
+
+        if(viceCaptainId === playerId){
+            viceCaptainId = null;
+        }
+
+        addBackToAvailablePlayers(player);
+        renderStartingXI();
+        updateCounts();
+        updateHiddenInputs();
+    }
+
+    function removeFromBench(playerId){
+        const player = benchPlayers.find(p=>p.id===playerId);
+        benchPlayers = benchPlayers.filter(p=>p.id !== playerId);
+
+        addBackToAvailablePlayers(player);
+        renderBench();
+        updateCounts();
+        updateHiddenInputs();
+    }
+
+    function renderStartingXI(){
+        const body = document.getElementById("startingBody");
+
+        body.innerHTML = "";
+
+        startingPlayers.forEach(player=>{
+
+            let captainChecked = captainId === player.id ? "checked" : "";
+            let viceChecked = viceCaptainId === player.id ? "checked" : "";
+
+            body.innerHTML += `
+                <tr>
+                    <td>${player.name}</td>
+                    <td>${player.position}</td>
+
+                    <td>
+                        <input
+                            type="radio"
+                            name="captainRadio"
+                            value="${player.id}"
+                            ${captainChecked}
+                            onchange="setCaptain(${player.id})"
+                        />
+                    </td>
+
+                    <td>
+                        <input
+                            type="radio"
+                            name="viceCaptainRadio"
+                            value="${player.id}"
+                            ${viceChecked}
+                            onchange="setViceCaptain(${player.id})"
+                        />
+                    </td>
+
+                    <td>
+                        <button type="button"
+                            onclick="removeFromXI(${player.id})">
+                            Remove
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function renderBench(){
+        const body = document.getElementById("benchBody");
+        body.innerHTML = "";
+        benchPlayers.forEach((player,index)=>{
+            body.innerHTML += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${player.name}</td>
+                    <td>${player.position}</td>
+                    <td>
+                        ${index > 0
+                            ? `<button type="button"
+                                onclick="moveBenchUp(${index})">↑</button>`
+                            : ""
+                        }
+
+                        ${index < benchPlayers.length - 1
+                            ? `<button type="button"
+                                onclick="moveBenchDown(${index})">↓</button>`
+                            : ""
+                        }
+                    </td>
+                    <td>
+                        <button type="button" onclick="removeFromBench(${player.id})">Remove</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function moveBenchUp(index){
+        if(index===0) return;
+
+        [benchPlayers[index-1], benchPlayers[index]] = [benchPlayers[index], benchPlayers[index - 1]];
+
+        renderBench();
+        updateHiddenInputs();
+    }
+
+    function moveBenchDown(index){
+        if(index === benchPlayers.length - 1){
+            return;
+        }
+
+        [benchPlayers[index + 1], benchPlayers[index]]
+        =
+        [benchPlayers[index], benchPlayers[index + 1]];
+
+        renderBench();
+
+        updateHiddenInputs();
+    }
+
+    function addBackToAvailablePlayers(player){
+        const body = document.getElementById("availableBody");
+        body.innerHTML += `
+            <tr data-id="${player.id}"
+                data-name="${player.name}"
+                data-position="${player.position}"
+                data-club="${player.club}"
+                >
+                <td>${player.name}</td>
+                <td>${player.position}</td>
+                <td>${player.club}</td>
+                <td>
+                    <button type="button" onclick="addToXI(this)">Add to XI</button>
+                    <button type="button" onclick="addToBench(this)">Add to Bench</button>
+                </td>
+            </tr>
+        `;
+    }
+
+    function extractPlayer(row){
+        return{
+            id: parseInt(row.dataset.id),
+            name: row.dataset.name,
+            position: row.dataset.position,
+            club: row.dataset.club
+        };
+    }
+
+    function filterAvailablePlayers(position){
+        const rows = document.querySelectorAll("#availableTable tbody tr");
+        rows.forEach(row=>{
+            if(position === "All"){
+                row.style.display = "";
+                return;
+            }
+            if(row.dataset.position===position){
+                row.style.display = "";
+            }
+            else
+            {
+                row.style.display = "none";
+
+            }
+        });
+    }
+
+    function updateCounts(){
+        document.getElementById("xiCount").innerText = "Starting XI: " + startingPlayers.length + " / 11";
+        document.getElementById("benchCount").innerText = "Bench: "+benchPlayers.length+" / 4";
+    }
+
+    let captainId = null;
+
+    function setCaptain(playerId){
+        if(viceCaptainId === playerId){
+            alert("Captain and Vice Captain cannot be the same player");
+            return;
+        }
+        captainId = playerId;
+        updateHiddenInputs();
+    }
+
+    let viceCaptainId = null;
+    function setViceCaptain(playerId){
+        if(captainId === playerId){
+            alert("Captain and Vice Captain cannot be the same player");
+            return;
+        }
+        viceCaptainId = playerId;
+        updateHiddenInputs();
+    }
+
+    function updateHiddenInputs(){
+        const container = document.getElementById("hiddenInputs");
+        container.innerHTML = "";
+
+        startingPlayers.forEach(player=>{
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "StartingTeamPlayerIDs";
+            input.value = player.id;
+            container.appendChild(input);
+        });
+
+        benchPlayers.forEach(player=>{
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name="BenchPlayerIDs";
+            input.value = player.id;
+            container.appendChild(input);
+        });
+
+        if(captainId !== null){
+            const captainInput = document.createElement("input");
+            captainInput.type = "hidden";
+            captainInput.name = "CaptainID";
+            captainInput.value = captainId;
+            container.appendChild(captainInput);
+        }
+
+        if(viceCaptainId !== null){
+            const viceInput = document.createElement("input");
+            viceInput.type = "hidden";
+            viceInput.name = "ViceCaptainID";
+            viceInput.value = viceCaptainId;
+            container.appendChild(viceInput);
+        }
+    }
+
+</script>
+

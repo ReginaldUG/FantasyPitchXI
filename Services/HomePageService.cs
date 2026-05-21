@@ -1,4 +1,5 @@
 ﻿using FantasyPitchXI.Data;
+using FantasyPitchXI.DTO;
 using FantasyPitchXI.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,19 +20,20 @@ namespace FantasyPitchXI.Services
             return fantasyTeamsList;
         }
 
-        public (bool proceed, FantasyTeam? team) GetTeamDetails(int teamId)
-        {
-            bool proceed = false;
-            
-            var team = _db.FantasyTeam.Include(t => t.FantasyTeamPlayers).ThenInclude(tp => tp.Player).ThenInclude(p => p.Club).FirstOrDefault(t => t.Id == teamId);
-            
+        public ApiResponse<FantasyTeam> GetTeamDetails(int teamId)
+        {            
+            var team = _db.FantasyTeam
+                .Include(t => t.FantasyTeamPlayers)
+                .ThenInclude(tp => tp.Player)
+                .ThenInclude(p => p.Club)
+                .FirstOrDefault(t => t.Id == teamId);            
 
             if (team==null)
             {
-                return (proceed, team);
+                return ApiResponse<FantasyTeam>.Fail("Team not found");
             }
 
-            return (true, team);
+            return ApiResponse<FantasyTeam>.Pass("Team retrieved successfully", team);
         }
 
         public List<Player> GetPlayersFromTeam(FantasyTeam team)
@@ -40,15 +42,17 @@ namespace FantasyPitchXI.Services
             return players;
         }
 
-        public async Task<(bool proceed, string message)> AdvanceGameweek()
+        public async Task<ApiResponse> AdvanceGameweek()
         {
-            bool proceed = false;
             if(GameState.CurrentGameweek >= GameRuleConstants.TotalGameweeks)
             {
-                return (proceed, "Season Over, Gameweek 38 reached");
+                return ApiResponse.Fail("Season Over, Gameweek 38 reached");
             }
+
             GameState.CurrentGameweek++;
+
             var teams = await _db.FantasyTeam.ToListAsync();
+
             foreach(var team in teams)
             {
                 if(team.TransferAvailableThisGameweek < 5)
@@ -58,7 +62,7 @@ namespace FantasyPitchXI.Services
             }
             await _db.SaveChangesAsync();
 
-            return (true, "passed");
+            return ApiResponse.Pass("passed");
         }
     }
 }

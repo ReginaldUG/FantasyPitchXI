@@ -1,4 +1,5 @@
 ﻿using FantasyPitchXI.Data;
+using FantasyPitchXI.DTO.Request_DTO;
 using FantasyPitchXI.Services;
 using FantasyPitchXI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -27,12 +28,12 @@ namespace FantasyPitchXI.Controllers
 
             var vm = new TransferPlayersViewModel
             {
-                TeamId = props.team.Id,
-                TeamName = props.team.TeamName,
-                Budget = props.team.Budget,
-                TransfersAvailable = props.team.TransferAvailableThisGameweek,
-                AllPlayers = props.availablePlayers,
-                CurrentSquad = props.currentSquad
+                TeamId = props.Team.Id,
+                TeamName = props.Team.TeamName,
+                Budget = props.Team.Budget,
+                TransfersAvailable = props.Team.TransferAvailableThisGameweek,
+                AllPlayers = props.AvailablePlayers,
+                CurrentSquad = props.CurrentSquad
             };
 
             return View(vm);
@@ -43,11 +44,17 @@ namespace FantasyPitchXI.Controllers
         {
             var team = _teamValidationService.GetTeamById(teamId);
 
-            var result = _transferservice.TransferPlayers(team, updatedSquadPlayerIDs);
-
-            if (!result.proceed)
+            var request = new TransferPlayersRequestDTO
             {
-                return BadRequest(result.message);
+                Team = team,
+                UpdatedSquadPlayerIDs = updatedSquadPlayerIDs
+            };
+
+            var result = _transferservice.TransferPlayers(request);
+
+            if (!result.Success)
+            {
+                return BadRequest(result.Message);
             }
 
             return RedirectToAction("Index", "Home");

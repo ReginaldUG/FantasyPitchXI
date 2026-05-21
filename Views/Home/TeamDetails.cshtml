@@ -51,11 +51,16 @@
         <a asp-controller="Transfer" asp-action="Index" asp-route-teamId="@Model.Team.Id">
             <button>Transfers</button>
         </a>
+
+        <a asp-controller="PickTeam" asp-action="PickTeam" asp-route-teamId="@Model.Team.Id">
+        <button>Pick Team</button>
+        </a>
     }
 
     <a asp-controller="Home" asp-action="ViewTeams">
         <button>Back to Teams View</button>
     </a>
+    <
 
     
 

@@ -43,15 +43,15 @@ namespace FantasyPitchXI.Controllers
         {
             var props = _homePageService.GetTeamDetails(teamId);
 
-            if (props.proceed == false)
+            if (props.Success == false)
             {
                 return View("Error");
             }
 
             var vm = new TeamDetailsViewModel
             {
-                Team = props.team,
-                Players = _homePageService.GetPlayersFromTeam(props.team)
+                Team = props.Data,
+                Players = _homePageService.GetPlayersFromTeam(props.Data)
             };
             return View(vm);
         }

@@ -8,6 +8,7 @@ namespace FantasyPitchXI.ViewModels
         public decimal Budget { get; set; }
         public List<Player> AllPlayers { get; set; } = new();
         public List<int> SelectedPlayerIds { get; set; } = new();
+        public List<Player> SelectedPlayers { get; set; } = new();
         public string TeamName { get; set; }
     }
 }

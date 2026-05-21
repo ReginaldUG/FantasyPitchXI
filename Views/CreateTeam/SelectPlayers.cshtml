@@ -78,7 +78,6 @@
                                     <td>@player.Position</td>
                                     <td>@player.Club.Name</td>
                                     <td>@player.Price</td>
-
                                 </tr>
                             }
                         </tbody>
@@ -86,7 +85,7 @@
                 </div>
             </div>
 
-            <!--ARROEW BUTTONS-->
+            <!--ARROW BUTTONS-->
             <div style="display:flex; flex-direction:column; gap:20px;">
                 <button type="button" onclick="moveRight()">
                     Add
@@ -111,7 +110,26 @@
                         </thead>
 
                         <tbody id="selectedBody">
-                        </tbody>
+                            @if (Model.SelectedPlayers != null)
+                                {
+                                    @foreach (var player in Model.SelectedPlayers)
+                                    {
+                                        <tr onclick="selectAvailablePlayer(this)"
+                                            data-id="@player.Id"
+                                            data-name="@player.Name"
+                                            data-position="@player.Position"
+                                            data-club="@player.Club.Name"
+                                            data-clubid="@player.ClubId"
+                                            data-price="@player.Price">
+
+                                            <td>@player.Name</td>
+                                            <td>@player.Position</td>
+                                            <td>@player.Club.Name</td>
+                                            <td>@player.Price</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
                     </table>
                 </div>
                 
@@ -158,6 +176,24 @@
 
     let selectedPlayers = [];
     let remainingBudget = @Model.Budget;
+
+    @foreach (var player in Model.SelectedPlayers)
+    {
+        <text>
+            let player@(player.Id) = {
+                id: @player.Id,
+                name: "@player.Name",
+                position: "@player.Position",
+                club: "@player.Club.Name",
+                clubId: @player.ClubId,
+                price:@player.Price
+            };
+            selectedPlayers.push(player@(player.Id));
+        </text>        
+    }
+    renderSelectedPlayers();
+    updateHiddenInputs();
+    updateBudgetDisplay();
 
     //  ROW SELECTIONS
     function selectAvailablePlayer(row){

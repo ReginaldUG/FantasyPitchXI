@@ -1,6 +1,8 @@
 ﻿using FantasyPitchXI.Data;
+using FantasyPitchXI.DTO;
 using FantasyPitchXI.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 namespace FantasyPitchXI.Services
 {
@@ -13,14 +15,15 @@ namespace FantasyPitchXI.Services
         }
 
         //  Create a new Team
-        public (bool success, string message, FantasyTeam? team) CreateTeam(string teamName)
+        public ApiResponse<FantasyTeam> CreateTeam(string teamName)
         {
+
             teamName = teamName.Trim();
             var teamExists = _db.FantasyTeam.FirstOrDefault(t => t.TeamName.ToLower() == teamName.ToLower());
 
             if (teamExists != null)
             {
-                return (false, "Team with same name already exists", null);
+                return ApiResponse<FantasyTeam>.Fail("Team with same name already exists");
             }
 
             var team = new FantasyTeam
@@ -32,16 +35,16 @@ namespace FantasyPitchXI.Services
             _db.FantasyTeam.Add(team);
             _db.SaveChanges();
 
-            return (true, "Team Created Successfully", team);
-        }
+            return ApiResponse<FantasyTeam>.Pass("Team Created Successfully", team);
+        }        
 
-        public (bool success, string message) AddPlayersToTeam(FantasyTeam team, List<Player> chosenPlayers)
+        public ApiResponse AddPlayersToTeam(FantasyTeam team, List<Player> chosenPlayers)
         {
             var teamValidator = TeamValidator(chosenPlayers);
 
-            if (!teamValidator.proceed)
+            if (!teamValidator.Success)
             {
-                return (false, teamValidator.message);
+                return ApiResponse.Fail(teamValidator.Message);
             }
 
             foreach (var player in chosenPlayers)
@@ -60,7 +63,7 @@ namespace FantasyPitchXI.Services
 
             _db.SaveChanges();
 
-            return (true, "Players added successfully");
+            return ApiResponse.Pass("Players added successfully");
         }
 
         public decimal CalculateRemainingBudget(List<Player> chosenPlayers)
@@ -71,7 +74,7 @@ namespace FantasyPitchXI.Services
             return remainingBudget;
         }
 
-        public (bool proceed, string message) TeamValidator(List<Player> chosenPlayers)
+        public ApiResponse TeamValidator(List<Player> chosenPlayers)
         {
             var teamCostValidation = ValidateTeamCost(chosenPlayers);
             var numberOfPlayersValidation = ValidateNumberOfPlayers(chosenPlayers);
@@ -81,73 +84,79 @@ namespace FantasyPitchXI.Services
             //String tenary conditional operator USED instead of nested if statement
             string? message =
                 chosenPlayers.Count != GameRuleConstants.TotalSquadSize ? $"Total Player must be {GameRuleConstants.TotalSquadSize.ToString()}" :
-                !teamCostValidation.proceed ? teamCostValidation.message :
-                !numberOfPlayersValidation.proceed ? numberOfPlayersValidation.message :
-                !teamOfPlayersValidation.proceed ? teamOfPlayersValidation.message : null;
+                !teamCostValidation.Success ? teamCostValidation.Message :
+                !numberOfPlayersValidation.Success ? numberOfPlayersValidation.Message :
+                !teamOfPlayersValidation.Success ? teamOfPlayersValidation.Message : null;
 
-            return message == null ? (true, "Team is valid") : (false, message);
-
+            return message == null ? ApiResponse.Pass("Team is valid") : ApiResponse.Fail(message);
         }
 
         /// Validation Logic
-        private (bool proceed, string message) ValidateNumberOfPlayers(List<Player> chosenPlayers)
+        private ApiResponse ValidateNumberOfPlayers(List<Player> chosenPlayers)
         {
-            var groupPlayers = chosenPlayers.GroupBy(p => p.Position).ToDictionary(g => g.Key, g => g.Count());
-
-            int goalkeepers = groupPlayers.GetValueOrDefault(PlayerPosition.Goalkeeper, 0);
-            int defenders = groupPlayers.GetValueOrDefault(PlayerPosition.Defender, 0);
-            int midfielders = groupPlayers.GetValueOrDefault(PlayerPosition.Midfielder, 0);
-            int strikers = groupPlayers.GetValueOrDefault(PlayerPosition.Striker, 0);
+            var playerGroup = groupPlayerByPosition(chosenPlayers);
 
             string? message =
-                goalkeepers != GameRuleConstants.TotalSquadGoalkeepers ? $"You Must Select {GameRuleConstants.TotalSquadGoalkeepers} Goalkeepers" :
-                defenders != GameRuleConstants.TotalSquadDefenders ? $"You Must Select {GameRuleConstants.TotalSquadDefenders} Defenders" :
-                midfielders != GameRuleConstants.TotalSquadMidfielders ? $"You Must Select {GameRuleConstants.TotalSquadMidfielders} Midfielders" :
-                strikers != GameRuleConstants.TotalSquadStrikers ? $"You Must Select {GameRuleConstants.TotalSquadStrikers} Strikers" :
+                playerGroup.GK != GameRuleConstants.TotalSquadGoalkeepers ? $"You Must Select {GameRuleConstants.TotalSquadGoalkeepers} Goalkeepers" :
+                playerGroup.DEF != GameRuleConstants.TotalSquadDefenders ? $"You Must Select {GameRuleConstants.TotalSquadDefenders} Defenders" :
+                playerGroup.MID != GameRuleConstants.TotalSquadMidfielders ? $"You Must Select {GameRuleConstants.TotalSquadMidfielders} Midfielders" :
+                playerGroup.ST != GameRuleConstants.TotalSquadStrikers ? $"You Must Select {GameRuleConstants.TotalSquadStrikers} Strikers" :
                 null;
 
-            return message == null ? (true, "passed") : (false, message);
+            return message == null ? ApiResponse.Pass("passed") : ApiResponse.Fail(message);
 
         }
 
-        private (bool proceed, string message) ValidateTeamOfPlayers(List<Player> chosenPlayers)
+        public PlayerGroupingDTO groupPlayerByPosition(List<Player> playerTogroup)
         {
-            bool proceed = true;
+            var groupPlayers = playerTogroup.GroupBy(p => p.Position).ToDictionary(g => g.Key, g => g.Count());
+
+
+            int GK = groupPlayers.GetValueOrDefault(PlayerPosition.Goalkeeper, 0);
+            int DEF = groupPlayers.GetValueOrDefault(PlayerPosition.Defender, 0);
+            int MID = groupPlayers.GetValueOrDefault(PlayerPosition.Midfielder, 0);
+            int ST = groupPlayers.GetValueOrDefault(PlayerPosition.Striker, 0);
+
+
+            return new PlayerGroupingDTO
+            {
+                GK = GK,
+                DEF = DEF,
+                MID = MID,
+                ST = ST,
+            };
+        }
+
+        private ApiResponse ValidateTeamOfPlayers(List<Player> chosenPlayers)
+        {
             string message = "passed";
 
-            var groupClubs = chosenPlayers.GroupBy(p => p.ClubId).ToDictionary(g => g.Key, g => g.Count());
-
+            var groupClubs = chosenPlayers.GroupBy(p => p.ClubId).ToDictionary(g => g.Key, g=> g.Count());
             foreach (var club in groupClubs)
             {
                 if (club.Value > GameRuleConstants.MaxPlayersFromSameClub)
                 {
                     message = $"You cannot select more than {GameRuleConstants.MaxPlayersFromSameClub} players from the same club.";
-                    proceed = false;
 
-                    return (proceed, message);
+                    return ApiResponse.Fail(message);
                 }
             }
-
-            return (proceed, message);
+            return ApiResponse.Pass(message);
         }
 
-        private (bool proceed, string message) ValidateTeamCost(List<Player> chosenPlayers)
+        private ApiResponse ValidateTeamCost(List<Player> chosenPlayers)
         {
-            bool proceed = true;
             string message = "passed";
-
             decimal teamCost = chosenPlayers.Sum(p => p.Price);
 
             if (teamCost > GameRuleConstants.InitialBudget)
             {
 
                 message = $"Team cost exceeds Max Budget of {GameRuleConstants.InitialBudget.ToString()}m";
-                proceed = false;
 
-                return (proceed, message);
+                return ApiResponse.Fail(message);
             }
-
-            return (proceed, message);
+            return ApiResponse.Pass(message);
         }
 
         //General

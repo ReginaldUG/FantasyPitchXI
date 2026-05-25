@@ -172,8 +172,11 @@ namespace FantasyPitchXI.Services
         }
         public List<Player> GetPlayersByIds(List<int> playerIds)
         {
-            var result = _db.Player.Include(p => p.Club).Where(p => playerIds.Contains(p.Id)).ToList();
-            return result;
+            var result = _db.Player
+                .Include(p => p.Club)
+                .Where(p => playerIds.Contains(p.Id))
+                .ToList();
+            return result.OrderBy(p=>playerIds.IndexOf(p.Id)).ToList();
         }
     }
 }

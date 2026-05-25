@@ -3,6 +3,7 @@ using FantasyPitchXI.DTO;
 using FantasyPitchXI.DTO.Request_DTO;
 using FantasyPitchXI.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.Intrinsics.X86;
 
 namespace FantasyPitchXI.Services
 {
@@ -97,8 +98,9 @@ namespace FantasyPitchXI.Services
                 CapID = request.CapID,
                 ViceID = request.ViceID,
             };
-            var update = UpdateXIandBench(propsUpdate);
-            if (!update)
+
+
+            if (!UpdateXIandBench(propsUpdate).Success)
             {
                 return ApiResponse.Fail("Error saving team");
             }
@@ -110,7 +112,7 @@ namespace FantasyPitchXI.Services
 
         }
 
-        private bool UpdateXIandBench(UpdateXIandBenchRequestDTO request)
+        private ApiResponse UpdateXIandBench(UpdateXIandBenchRequestDTO request)
         {
             //Clear current XI and bench in db
             var existingLineup = _db.FantasyTeamLineups.Where(l => l.FantasyTeamId == request.TeamID && l.Gameweek == GameState.CurrentGameweek).ToList();
@@ -155,8 +157,7 @@ namespace FantasyPitchXI.Services
                 _db.FantasyTeamLineups.Add(addBench);
             }
 
-            return true;
-
+            return ApiResponse.Pass("passed");
         }
 
         private ApiResponse ValidateNumberOfPlayersXI(List<Player> chosenPlayers)

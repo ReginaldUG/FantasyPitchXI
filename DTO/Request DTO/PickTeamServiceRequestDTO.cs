@@ -33,4 +33,16 @@ namespace FantasyPitchXI.DTO.Request_DTO
         public int CapID { get; set; }
         public int ViceID { get; set; }
     }
+
+    public class ValidateBenchPlayersRequestDTO
+    {
+        public int TeamID { get; set; }
+        public List<int> SelectedBenchPlayersIDs { get; set; }
+    }
+
+    public class GetTeamCurrentSquadRequestDTO
+    {
+        public int TeamID { get; set; }
+    }
+    
 }

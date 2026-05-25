@@ -23,7 +23,12 @@ namespace FantasyPitchXI.Controllers
         public IActionResult PickTeam(int teamId)
         {
             var team = _teamservice.GetTeamById(teamId);
-            var squad = _pickTeamService.GetTeamCurrentSquad(teamId);
+
+            var request = new GetTeamCurrentSquadRequestDTO()
+            {
+                TeamID = teamId
+            };
+            var squad = _pickTeamService.GetTeamCurrentSquad(request).SquadPlayers;
 
             var vm = new PickTeamViewModel
             {

@@ -18,12 +18,15 @@ namespace FantasyPitchXI.Services
             _teamValidationService = new TeamValidationService(db);
         }
 
-        public List<Player> GetTeamCurrentSquad(int teamId)
+        public GetTeamCurrentSquadResponseDTO GetTeamCurrentSquad(GetTeamCurrentSquadRequestDTO request)
         {
-            var team = _teamValidationService.GetTeamById(teamId);
+            var team = _teamValidationService.GetTeamById(request.TeamID);
             var sqaudPlayers = team.FantasyTeamPlayers.Select(p => p.Player).ToList();
 
-            return sqaudPlayers;
+            return new GetTeamCurrentSquadResponseDTO()
+            {
+                SquadPlayers = sqaudPlayers
+            };
         }
         
         public ApiResponse ValidateALLSelection(ValidateAllSelectionRequestDTO request)
@@ -50,22 +53,27 @@ namespace FantasyPitchXI.Services
             };
             var check = ValidateALLSelection(props);
 
-            if (!check.Success) 
+            if (!check.Success)
                 return ApiResponse.Fail(check.Message);
 
             //Check the number of players chosen
-            if (request.StartingIDs.Count != 11) 
+            if (request.StartingIDs.Count != 11)
                 return ApiResponse.Fail("You must select 11 Players");
 
-            var benchCheck = ValidateBenchPlayers(request.Team.Id, request.BenchIDs);
+            var prop = new ValidateBenchPlayersRequestDTO()
+            {
+                TeamID = request.Team.Id,
+                SelectedBenchPlayersIDs = request.BenchIDs
+            };
+            var benchCheck = ValidateBenchPlayers(prop);
             if (!benchCheck.Success)
             {
                 return ApiResponse.Fail(benchCheck.Message);
-            }            
+            }
 
             //Check that IDs are valid in db and belong to Fantasy Team
             var areIDsValid = AreIDsValidAndOwned(request.Team.Id, request.StartingIDs);
-            if (!areIDsValid.Success) 
+            if (!areIDsValid.Success)
                 return ApiResponse.Fail(areIDsValid.Message);
 
             List<Player> chosenXIPlayers = _teamValidationService.GetPlayersByIds(request.StartingIDs);
@@ -98,7 +106,6 @@ namespace FantasyPitchXI.Services
                 CapID = request.CapID,
                 ViceID = request.ViceID,
             };
-
 
             if (!UpdateXIandBench(propsUpdate).Success)
             {
@@ -172,7 +179,6 @@ namespace FantasyPitchXI.Services
                 null;
 
             return message == null ? ApiResponse.Pass("passed") : ApiResponse.Fail(message);
-
         }
 
         private bool ValidateCapValidateVice(ValidateCapValidateViceRequestDTO request)
@@ -183,7 +189,7 @@ namespace FantasyPitchXI.Services
                 return false;
             }
 
-            //cap and vice id and team xcannot be null
+            //cap and vice id and team cannot be null
             if (request.Team == null)
             {
                 return false;
@@ -210,7 +216,6 @@ namespace FantasyPitchXI.Services
             }
 
             return true;
-
         }
 
         private ApiResponse AreIDsValidAndOwned (int teamID, List<int> IDs)
@@ -234,22 +239,22 @@ namespace FantasyPitchXI.Services
             return ApiResponse.Pass("proceed");
         }
 
-        private ApiResponse<List<Player>> ValidateBenchPlayers(int teamID, List<int> SelectedBenchPlayersIDs)
+        private ApiResponse<List<Player>> ValidateBenchPlayers(ValidateBenchPlayersRequestDTO request)
         {
-            //Validate exACTLY 4 PLAYERS CHOSEN
-            if (SelectedBenchPlayersIDs.Count != 4)
+            //Validate exactly 4 players chose
+            if (request.SelectedBenchPlayersIDs.Count != 4)
             {
                 return ApiResponse<List<Player>>.Fail("Bench must contain 4 players");
             }
 
             //Check that the IDs exist as players in db and belong to Fantasy Team
-            var areValidandOwned = AreIDsValidAndOwned(teamID, SelectedBenchPlayersIDs);
+            var areValidandOwned = AreIDsValidAndOwned(request.TeamID, request.SelectedBenchPlayersIDs);
             if (!areValidandOwned.Success)
             {
                 return ApiResponse<List<Player>>.Fail(areValidandOwned.Message);
             }
 
-            List<Player> SelectedBenchPlayers = _teamValidationService.GetPlayersByIds(SelectedBenchPlayersIDs);
+            List<Player> SelectedBenchPlayers = _teamValidationService.GetPlayersByIds(request.SelectedBenchPlayersIDs);
             
             //Validate must be 1 GK and 3 outfield players
             var playersGroup = _teamValidationService.groupPlayerByPosition(SelectedBenchPlayers);

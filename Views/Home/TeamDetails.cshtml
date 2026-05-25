@@ -6,8 +6,8 @@
 <div>
     <h1>@Model.Team.TeamName</h1>
     <br/>
+    
     <h4>Remaining Budget: @Model.Team.Budget m</h4>
-    <h4>Transfers Available: @Model.Team.TransferAvailableThisGameweek</h4>
     <br/>
     <br/>
 
@@ -17,32 +17,104 @@
 
         <a asp-controller="CreateTeam" asp-action="SelectPlayers" asp-route-teamId="@Model.Team.Id">
             <button type="button">Continue to select players</button>
-        </a>        
+        </a>
     }
     else
     {
-        <h2>Squad:</h2>
-        <table border="1" cellpadding="10">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Position</th>
-                    <th>Club</th>
-                    <th>Price</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach(var player in Model.Players)
-                {
+        <div style="display:flex"; gap:50px; align-items="flex-start;">
+            <div>
+                <h2>Squad:</h2>
+                <table border="1" cellpadding="10">
+                    <thead>
                     <tr>
-                        <td>@player.Name</td>
-                        <td>@player.Position</td>
-                        <td>@player.Club.Name</td>
-                        <td>@player.Price m</td>
+                        <th>Name</th>
+                        <th>Position</th>
+                        <th>Club</th>
+                        <th>Price</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                    </thead>
+                    <tbody>
+                    @foreach (var player in Model.Players)
+                    {
+                        <tr>
+                            <td>@player.Name</td>
+                            <td>@player.Position</td>
+                            <td>@player.Club.Name</td>
+                            <td>@player.Price m</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            @if (!Model.Starting.Any())
+            {
+                <div style="margin-top:40px">
+                    <h3>Line-up not chosen</h3>
+                    <h3>Please pick your Starting team</h3>
+                </div>
+            }
+            else
+            {
+                <div style="display:flex; flex-direction:column; gap:30px; margin-left:50px;">
+                    <div>
+                        <h2>Starting XI</h2>
+
+                        <div class="player-table-container-small">
+                            <table border="1" cellpadding="8">
+                                <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Position</th>
+                                    <th>Club</th>
+                                </tr>
+                                </thead>
+
+                                <tbody>
+                                @foreach (var player in Model.Starting)
+                                {
+                                    <tr>
+                                        <td>@player.Name</td>
+                                        <td>@player.Position</td>
+                                        <td>@player.Club.Name</td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h2>Bench</h2>
+                        <div class="player-table-container-small">
+                            <table border="1" cellpadding="8">
+                                <thead>
+                                    <tr>
+                                        <th>Order</th>
+                                        <th>Name</th>
+                                        <th>Position</th>
+                                        <th>Club</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    @{int rowNumber = 1;}
+                                    @foreach (var player in Model.Bench)
+                                    {
+                                        <tr>
+                                            <td>@rowNumber</td>
+                                            <td>@player.Name</td>
+                                            <td>@player.Position</td>
+                                            <td>@player.Club.Name</td>
+                                        </tr>
+                                        rowNumber++;
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
     }
 
     <br/><br/>
@@ -53,16 +125,35 @@
         </a>
 
         <a asp-controller="PickTeam" asp-action="PickTeam" asp-route-teamId="@Model.Team.Id">
-        <button>Pick Team</button>
+            <button>Pick Team</button>
         </a>
     }
 
     <a asp-controller="Home" asp-action="ViewTeams">
         <button>Back to Teams View</button>
     </a>
-    <
-
-    
-
 </div>
 
+<style>
+
+    .player-table-container-small
+    {
+        max-height: 350px;
+        overflow-y: auto;
+        border: 1px solid black;
+    }
+
+    table
+    {
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    th
+    {
+        position: sticky;
+        top: 0;
+        background-color: white;
+    }
+
+</style>

@@ -51,7 +51,9 @@ namespace FantasyPitchXI.Controllers
             var vm = new TeamDetailsViewModel
             {
                 Team = props.Data,
-                Players = _homePageService.GetPlayersFromTeam(props.Data)
+                Players = _homePageService.GetPlayersFromTeam(props.Data),
+                Starting = _homePageService.GetTeamStartingPlayers(teamId).Data,
+                Bench = _homePageService.GetTeamBenchPlayers(teamId).Data                
             };
             return View(vm);
         }

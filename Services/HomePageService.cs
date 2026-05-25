@@ -26,7 +26,7 @@ namespace FantasyPitchXI.Services
                 .Include(t => t.FantasyTeamPlayers)
                 .ThenInclude(tp => tp.Player)
                 .ThenInclude(p => p.Club)
-                .FirstOrDefault(t => t.Id == teamId);            
+                .FirstOrDefault(t => t.Id == teamId);          
 
             if (team==null)
             {
@@ -34,6 +34,50 @@ namespace FantasyPitchXI.Services
             }
 
             return ApiResponse<FantasyTeam>.Pass("Team retrieved successfully", team);
+        }
+
+        public ApiResponse<List<Player>> GetTeamStartingPlayers(int teamId)
+        {
+            try
+            {
+                var gw = GameState.CurrentGameweek;
+                
+                var starting = _db.FantasyTeamLineups
+                    .Where(t => t.FantasyTeamId == teamId && t.Gameweek == gw && t.IsStarting == true)
+                    .Select(tp => tp.FantasyTeamPlayer.Player)
+                    .OrderBy(p=>p.Position)
+                    .ToList();
+
+                return ApiResponse<List<Player>>.Pass("proceed", starting);
+            }
+            catch (Exception e)
+            {                
+                Console.WriteLine(e);
+                return ApiResponse<List<Player>>.Fail("Failed to fetch starting players");
+            }           
+        }
+
+        public ApiResponse<List<Player>> GetTeamBenchPlayers(int teamId)
+        {
+            try
+            {
+                var bench = _db.FantasyTeamLineups
+                    .Where(t =>
+                        t.FantasyTeamId == teamId &&
+                        t.Gameweek == GameState.CurrentGameweek &&
+                        t.IsStarting == false
+                    )
+                    .OrderBy(p=>p.BenchOrder)
+                    .Select(tp => tp.FantasyTeamPlayer.Player)
+                    .ToList();
+
+                return ApiResponse<List<Player>>.Pass("proceed", bench);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return ApiResponse<List<Player>>.Fail("Failed to fetch bench players");
+            }
         }
 
         public List<Player> GetPlayersFromTeam(FantasyTeam team)

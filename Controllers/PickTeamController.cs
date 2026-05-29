@@ -11,30 +11,38 @@ namespace FantasyPitchXI.Controllers
         private readonly AppDbContext _db;
         private readonly PickTeamService _pickTeamService;
         private readonly TeamValidationService _teamservice;
+        private readonly HomePageService _homePageService;
 
         public PickTeamController(AppDbContext db)
         {
             _db = db;
             _pickTeamService = new PickTeamService(db);
             _teamservice = new TeamValidationService(db);
+            _homePageService = new HomePageService(db);
         }
 
         [HttpGet]
         public IActionResult PickTeam(int teamId)
         {
             var team = _teamservice.GetTeamById(teamId);
+            var starting = _homePageService.GetTeamStartingPlayers(teamId).Data;
+            var bench = _homePageService.GetTeamBenchPlayers(teamId).Data;
 
             var request = new GetTeamCurrentSquadRequestDTO()
             {
                 TeamID = teamId
             };
-            var squad = _pickTeamService.GetTeamCurrentSquad(request).SquadPlayers;
-
+            //var squad = _pickTeamService.GetTeamCurrentSquad(request).SquadPlayers;
+            bool isTeamLineupComplete = starting?.Count == 11 && bench?.Count == 4;
+            var squad = isTeamLineupComplete ? [] : _pickTeamService.GetTeamCurrentSquad(request).SquadPlayers;
+            
             var vm = new PickTeamViewModel
             {
                 TeamId = teamId,
                 TeamName = team.TeamName,
-                Squad = squad
+                Squad = squad,
+                Starting = starting ?? [],
+                Bench = bench ?? []
             };
 
             return View(vm);

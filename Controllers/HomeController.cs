@@ -48,12 +48,14 @@ namespace FantasyPitchXI.Controllers
                 return View("Error");
             }
 
+            var lineup = _homePageService.GetTeamStartingPlayers(teamId).Data;
+
             var vm = new TeamDetailsViewModel
             {
                 Team = props.Data,
                 Players = _homePageService.GetPlayersFromTeam(props.Data),
-                Starting = _homePageService.GetTeamStartingPlayers(teamId).Data,
-                Bench = _homePageService.GetTeamBenchPlayers(teamId).Data                
+                Starting = lineup.Select(dto=>dto.Player).ToList(),
+                Bench = _homePageService.GetTeamBenchPlayers(teamId).Data
             };
             return View(vm);
         }

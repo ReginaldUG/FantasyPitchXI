@@ -36,7 +36,7 @@ namespace FantasyPitchXI.Services
             return ApiResponse<FantasyTeam>.Pass("Team retrieved successfully", team);
         }
 
-        public ApiResponse<List<Player>> GetTeamStartingPlayers(int teamId)
+        public ApiResponse<List<LineupPlayerDTO>> GetTeamStartingPlayers(int teamId)
         {
             try
             {
@@ -44,16 +44,21 @@ namespace FantasyPitchXI.Services
                 
                 var starting = _db.FantasyTeamLineups
                     .Where(t => t.FantasyTeamId == teamId && t.Gameweek == gw && t.IsStarting == true)
-                    .Select(tp => tp.FantasyTeamPlayer.Player)
-                    .OrderBy(p=>p.Position)
+                    .OrderBy(t=>t.FantasyTeamPlayer.Player.Position)
+                    .Select(t=>new LineupPlayerDTO
+                    {
+                        Player = t.FantasyTeamPlayer.Player,
+                        IsCaptain = t.IsCaptain,
+                        IsViceCaptain = t.IsViceCaptain
+                    })
                     .ToList();
 
-                return ApiResponse<List<Player>>.Pass("proceed", starting);
+                return ApiResponse<List<LineupPlayerDTO>>.Pass("proceed", starting);
             }
             catch (Exception e)
             {                
                 Console.WriteLine(e);
-                return ApiResponse<List<Player>>.Fail("Failed to fetch starting players");
+                return ApiResponse<List<LineupPlayerDTO>>.Fail("Failed to fetch starting players");
             }           
         }
 

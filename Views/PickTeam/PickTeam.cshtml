@@ -90,7 +90,7 @@
                     </table>
                 </div>
             </div>
-
+            
             <!--Right side-->
             <div>
                 <!--Starting XI-->
@@ -109,6 +109,10 @@
                             </thead>
 
                             <tbody id="startingBody"></tbody>
+                            @if (@Model.Starting.Any())
+                            {
+                                
+                            }
                         </table>
                     </div>
                 </div>
@@ -170,8 +174,31 @@
 </style>
 
 <script>
-    let startingPlayers = [];
-    let benchPlayers = [];
+    // Map the starting LineupPlayerDto items into flat, safe client-side objects
+    let startingPlayers = @Html.Raw(Json.Serialize(Model.Starting.Select(item => new {
+        isCaptain = item.IsCaptain,
+        isViceCaptain = item.IsViceCaptain,
+        player = new {
+            id = item.Player.Id,
+            name = item.Player.Name,
+            position = item.Player.Position.ToString(),
+            club = item.Player.Club?.Name ?? ""
+        }
+    }))) || [];
+
+    // Map the bench Player items into flat, safe client-side objects
+    let benchPlayers = @Html.Raw(Json.Serialize(Model.Bench.Select(player => new {
+        id = player.Id,
+        name = player.Name,
+        position = player.Position.ToString(),
+        club = player.Club?.Name ?? ""
+    }))) || [];
+    
+    const currentCaptain = startingPlayers.find(item => item.isCaptain === true);
+    const currentVice = startingPlayers.find(item => item.isViceCaptain === true);
+
+    let captainId = currentCaptain ? currentCaptain.player.id : null;
+    let viceCaptainId = currentVice ? currentVice.player.id : null;
 
     document.getElementById("pickTeamForm").addEventListener("submit", function(e){
         if(startingPlayers.length !== 11){
@@ -196,6 +223,12 @@
         }
     });
 
+    //ON PAGE LOAD
+    renderStartingXI();
+    renderBench();
+    updateCounts();
+    updateHiddenInputs();
+
     function addToXI(button){
         if(startingPlayers.length >= 11){
             alert("Starting XI already full");
@@ -204,7 +237,12 @@
         const row = button.closest("tr");
         const player = extractPlayer(row);
 
-        startingPlayers.push(player);
+        //wrapping in DTO format to match the right starting table object format
+        startingPlayers.push({
+            player: player,
+            isCaptain: false,
+            isViceCaptain: false
+        });
         row.remove();
         renderStartingXI();
         updateCounts();
@@ -236,8 +274,10 @@
     }
 
     function removeFromXI(playerId){
-        const player = startingPlayers.find(p=>p.id === playerId);
-        startingPlayers = startingPlayers.filter(p=>p.id !== playerId);
+        const item = startingPlayers.find(p=>p.player.id === playerId);
+        if(!item) return;
+
+        startingPlayers = startingPlayers.filter(p=>p.player.id !== playerId);
 
         if(captainId === playerId){
             captainId = null;
@@ -247,7 +287,7 @@
             viceCaptainId = null;
         }
 
-        addBackToAvailablePlayers(player);
+        addBackToAvailablePlayers(item.player);
         renderStartingXI();
         updateCounts();
         updateHiddenInputs();
@@ -263,7 +303,54 @@
         updateHiddenInputs();
     }
 
-    function renderStartingXI(){
+    function renderStartingXI() {
+        const body = document.getElementById("startingBody");
+        body.innerHTML = "";
+
+        startingPlayers.forEach(item => {
+            const player = item.player;
+
+            let captainChecked = captainId === player.id ? "checked" : "";
+            let viceChecked = viceCaptainId === player.id ? "checked" : "";
+
+            body.innerHTML += `
+                <tr>
+                    <td>${player.name}</td>
+                    <td>${player.position}</td>
+
+                    <td>
+                        <input
+                            type="radio"
+                            name="captainRadio"
+                            value="${player.id}"
+                            ${captainChecked}
+                            onchange="setCaptain(${player.id})"
+                        />
+                    </td>
+
+                    <td>
+                        <input
+                            type="radio"
+                            name="viceCaptainRadio"
+                            value="${player.id}"
+                            ${viceChecked}
+                            onchange="setViceCaptain(${player.id})"
+                        />
+                    </td>
+
+                    <td>
+                        <button type="button"
+                            onclick="removeFromXI(${player.id})">
+                            Remove
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+   /* function renderStartingXI(){
+        
         const body = document.getElementById("startingBody");
 
         body.innerHTML = "";
@@ -307,7 +394,7 @@
                 </tr>
             `;
         });
-    }
+    }*/
 
     function renderBench(){
         const body = document.getElementById("benchBody");
@@ -353,12 +440,9 @@
             return;
         }
 
-        [benchPlayers[index + 1], benchPlayers[index]]
-        =
-        [benchPlayers[index], benchPlayers[index + 1]];
+        [benchPlayers[index + 1], benchPlayers[index]] = [benchPlayers[index], benchPlayers[index + 1]];
 
         renderBench();
-
         updateHiddenInputs();
     }
 
@@ -372,7 +456,7 @@
                 >
                 <td>${player.name}</td>
                 <td>${player.position}</td>
-                <td>${player.club}</td>
+                <td>${player.club || ''}</td>
                 <td>
                     <button type="button" onclick="addToXI(this)">Add to XI</button>
                     <button type="button" onclick="addToBench(this)">Add to Bench</button>
@@ -413,21 +497,20 @@
         document.getElementById("benchCount").innerText = "Bench: "+benchPlayers.length+" / 4";
     }
 
-    let captainId = null;
-
     function setCaptain(playerId){
         if(viceCaptainId === playerId){
             alert("Captain and Vice Captain cannot be the same player");
+            renderStartingXI();
             return;
         }
         captainId = playerId;
         updateHiddenInputs();
     }
 
-    let viceCaptainId = null;
     function setViceCaptain(playerId){
         if(captainId === playerId){
             alert("Captain and Vice Captain cannot be the same player");
+            renderStartingXI();
             return;
         }
         viceCaptainId = playerId;
@@ -438,11 +521,11 @@
         const container = document.getElementById("hiddenInputs");
         container.innerHTML = "";
 
-        startingPlayers.forEach(player=>{
+        startingPlayers.forEach(item=>{
             const input = document.createElement("input");
             input.type = "hidden";
             input.name = "StartingTeamPlayerIDs";
-            input.value = player.id;
+            input.value = item.player.id;
             container.appendChild(input);
         });
 

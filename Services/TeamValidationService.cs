@@ -17,7 +17,6 @@ namespace FantasyPitchXI.Services
         //  Create a new Team
         public ApiResponse<FantasyTeam> CreateTeam(string teamName)
         {
-
             teamName = teamName.Trim();
             var teamExists = _db.FantasyTeam.FirstOrDefault(t => t.TeamName.ToLower() == teamName.ToLower());
 
@@ -30,6 +29,7 @@ namespace FantasyPitchXI.Services
             {
                 TeamName = teamName,
                 Budget = GameRuleConstants.InitialBudget,
+                
                 TransferAvailableThisGameweek = GameRuleConstants.MaxTransfersPerGW
             };
             _db.FantasyTeam.Add(team);
